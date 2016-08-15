@@ -42,6 +42,9 @@ var requestHandler = function(request, response) {
   if (request.method === 'POST') {
     statusCode = 201;
   }
+  if (request.url !== '/classes/messages') {
+    statusCode = 404;
+  }
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -61,6 +64,10 @@ var requestHandler = function(request, response) {
   // response.end() will be the body of the response - i.e. what shows
   // up in the browser.
   //
+
+  if (request.method === 'POST') {
+    body.results.push(request._postData); 
+  }
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
   response.end(JSON.stringify(body));
