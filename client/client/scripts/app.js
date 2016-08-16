@@ -6,12 +6,13 @@ var app = {
   username: 'anonymous',
   roomname: 'lobby',
   messages: [],
-  lastMessageId: 0,
+  lastDate: 0,
   friends: {},
 
   init: function() {
     // Get username
-    app.username = window.location.search.substr(10);
+    var user = $('<div />').text(prompt('What is your name?'));
+    app.username = user.text();
 
     // Cache jQuery selectors
     app.$message = $('#message');
@@ -28,7 +29,7 @@ var app = {
     app.fetch();
 
     // poll for new messages
-    setInterval(app.fetch, 1000);
+    // setInterval(app.fetch, 1000);
 
   },
 
@@ -36,19 +37,19 @@ var app = {
     $.ajax({
       url: app.server,
       type: 'GET',
-      data: {
-        order: '-createdAt'
-      },
+      // data: {
+      //   order: '-createdAt'
+      // },
       success: function(data) {
         console.log('success!', data);
         if (!data.results || !data.results.length) { return; }
 
         app.messages = data.results;
 
-        var mostRecentMessage = app.messages[app.messages.length - 1];
+        var mostRecentMessage = app.messages[0];
 
-        if (mostRecentMessage.objectId !== app.lastMessageId) {
-          app.lastMessageId = mostRecentMessage.objectId;
+        if (mostRecentMessage.createdAt !== app.lastDate) {
+          app.lastDate = mostRecentMessage.createdAt;
 
           app.renderMessages(app.messages);
           app.renderRoomList(app.messages);

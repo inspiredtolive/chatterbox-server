@@ -1,11 +1,5 @@
 var fs = require('fs');
 
-var defaultCorsHeaders = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'access-control-allow-headers': 'content-type, accept',
-  'access-control-max-age': 10 // Seconds.
-};
 /*************************************************************
 
 You should implement your request handler function in this file.
@@ -21,6 +15,14 @@ this file and include it in basic-server.js so that it actually works.
 **************************************************************/
 var body = {results: []};
 var requestHandler = function(request, response) {
+  console.log(decodeURI(request.url));
+  var defaultCorsHeaders = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers': 'content-type, accept',
+    'access-control-max-age': 10, // Seconds.
+    'Content-Type': 'application/json'
+  };
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -36,59 +38,105 @@ var requestHandler = function(request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
+  var headers = defaultCorsHeaders;
 
   // The outgoing status.
-  var statusCode = 200;
+  var urlKeys = {
+    '/': true,
+    '/styles/styles.css': true,
+    '/bower_components/jquery/dist/jquery.js': true,
+    '/scripts/app.js': true,
+    '/favicon.ico': true,
+    '/styles/styles.css': true
+  };
+
+  if (!urlKeys[request.url] && !request.url.startsWith('/classes/messages')) {
+    response.writeHead(404, headers);
+    response.end();
+  }
 
 
   if (request.method === 'POST') {
-    statusCode = 201;
-  }
-  if (!request.url.startsWith('/classes/messages')) {
-    statusCode = 404;
-  }
-
-  // See the note below about CORS headers.
-  var headers = defaultCorsHeaders;
-
-  // Tell the client we are sending them plain text.
-  //
-  // You will need to change this if you are sending something
-  // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'application/json';
-  var exit = false;
-  if (request.url === '/') {
-    fs.readFile('../client/client/index.html', 'utf8', function (err, html) {
-      if (err) {
-        console.log(err);
-        statusCode = 500;
-      } else {
-        headers['Content-Type'] = 'text/html';
-        response.writeHead(200, headers);
-        response.write(html);
-        response.end();
-      }
-    });
-  } else {
-  // .writeHead() writes to the request line and headers of the response,
-  // which includes the status and all headers.
-    response.writeHead(statusCode, headers);
-
-  // Make sure to always call response.end() - Node may not send
-  // anything back to the client until you do. The string you pass to
-  // response.end() will be the body of the response - i.e. what shows
-  // up in the browser.
-  //
-
-
-    if (request.method === 'POST') {
-      request.on('data', (json) => body.results.push(JSON.parse(json)));
-    //body.results = body.results.concat(Object.keys(request).slice(12).map((key) => request[key]));
+    if (request.url.startsWith('/classes/messages')) {
+      response.writeHead(201, headers);
+      request.on('data', (json) => {
+        var message = JSON.parse(json);
+        message.createdAt = Date.now();
+        body.results.unshift(message);
+      });
+      response.end(JSON.stringify(body));
     }
-  // Calling .end "flushes" the response's internal buffer, forcing
-  // node to actually send all the data over to the client.
-    response.end(JSON.stringify(body));
+
+  } else if (request.method === 'GET') {
+    if (request.url.startsWith('/classes/messages')) {
+      response.writeHead(200, headers);
+      response.end(JSON.stringify(body));
+    } else {
+      var filePath = '../client/client';
+      if (request.url === '/') {
+        headers['Content-Type'] = 'text/html';
+        filePath += '/index.html';
+      } else if (request.url.endsWith('.js')) {
+        headers['Content-Type'] = 'text/javascript';
+        filePath += request.url;
+      } else if (request.url.endsWith('.css')) {
+        headers['Content-Type'] = 'text/css';
+        filePath += request.url;
+      }
+      fs.readFile(filePath, 'utf8', function (err, html) {
+        if (err) {
+          console.log(err);
+          response.writeHead(500, headers);
+          response.end();
+        } else {
+          response.writeHead(200, headers);
+          response.write(html);
+          response.end();
+        }
+      });
+    }
+    // } else if (request.url === '/') {
+    //   headers['Content-Type'] = 'text/html';
+    //   fs.readFile('../client/client/index.html', 'utf8', function (err, html) {
+    //     if (err) {
+    //       console.log(err);
+    //       response.writeHead(500, headers);
+    //       response.end();
+    //     } else {
+    //       response.writeHead(200, headers);
+    //       response.write(html);
+    //       response.end();
+    //     }
+    //   });
+    // } else if (request.url.endsWith('.js')) {
+    //   headers['Content-Type'] = 'text/javascript';
+    //   fs.readFile(`../client/client${request.url}`, 'utf8', function (err, html) {
+    //     if (err) {
+    //       console.log(err);
+    //       response.writeHead(500, headers);
+    //       response.end();
+    //     } else {
+    //       response.writeHead(200, headers);
+    //       response.write(html);
+    //       response.end();
+    //     }
+    //   });
+    // } else if (request.url.endsWith('.css')) {
+    //   headers['Content-Type'] = 'text/css';
+      // fs.readFile(`../client/client${request.url}`, 'utf8', function (err, html) {
+      //   if (err) {
+      //     console.log(err);
+      //     response.writeHead(500, headers);
+      //     response.end();
+      //   } else {
+      //     response.writeHead(200, headers);
+      //     response.write(html);
+      //     response.end();
+      //   }
+      // });
+    // }
   }
+
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
