@@ -42,7 +42,7 @@ var requestHandler = function(request, response) {
   if (request.method === 'POST') {
     statusCode = 201;
   }
-  if (request.url !== '/classes/messages') {
+  if (!request.url.startsWith('/classes/messages')) {
     statusCode = 404;
   }
 
@@ -53,7 +53,7 @@ var requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'text/plain';
+  headers['Content-Type'] = 'application/json';
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
@@ -66,7 +66,8 @@ var requestHandler = function(request, response) {
   //
 
   if (request.method === 'POST') {
-    body.results.push(request._postData); 
+    request.on('data', (json) => body.results.push(JSON.parse(json)));
+    //body.results = body.results.concat(Object.keys(request).slice(12).map((key) => request[key]));
   }
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
