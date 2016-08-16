@@ -2,7 +2,7 @@ var app = {
 
   //TODO: The current 'handleUsernameClick' function just toggles the class 'friend'
   //to all messages sent by the user
-  server: 'http://127.0.0.1:3000/classes/messages/',
+  server: 'http://127.0.0.1:3000/classes/messages',
   username: 'anonymous',
   roomname: 'lobby',
   messages: [],
@@ -28,7 +28,7 @@ var app = {
     app.fetch();
 
     // poll for new messages
-    setInterval(app.fetch, 3000);
+    setInterval(app.fetch, 1000);
 
   },
 
@@ -40,6 +40,7 @@ var app = {
         order: '-createdAt'
       },
       success: function(data) {
+        console.log('success!', data);
         if (!data.results || !data.results.length) { return; }
 
         app.messages = data.results;

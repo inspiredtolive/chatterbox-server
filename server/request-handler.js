@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var defaultCorsHeaders = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -54,10 +56,23 @@ var requestHandler = function(request, response) {
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
   headers['Content-Type'] = 'application/json';
-
+  var exit = false;
+  if (request.url === '/') {
+    fs.readFile('../client/client/index.html', 'utf8', function (err, html) {
+      if (err) {
+        console.log(err);
+        statusCode = 500;
+      } else {
+        headers['Content-Type'] = 'text/html';
+        response.writeHead(200, headers);
+        response.write(html);
+        response.end();
+      }
+    });
+  } else {
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
+    response.writeHead(statusCode, headers);
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -65,13 +80,15 @@ var requestHandler = function(request, response) {
   // up in the browser.
   //
 
-  if (request.method === 'POST') {
-    request.on('data', (json) => body.results.push(JSON.parse(json)));
+
+    if (request.method === 'POST') {
+      request.on('data', (json) => body.results.push(JSON.parse(json)));
     //body.results = body.results.concat(Object.keys(request).slice(12).map((key) => request[key]));
-  }
+    }
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end(JSON.stringify(body));
+    response.end(JSON.stringify(body));
+  }
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
