@@ -1,3 +1,4 @@
+//Importing FS
 var fs = require('fs');
 
 /*************************************************************
@@ -13,14 +14,19 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
+//declare var body to store all of our messages
 var body = {results: []};
+//declared our requestHandler function
 var requestHandler = function(request, response) {
-  console.log(decodeURI(request.url));
-  var defaultCorsHeaders = {
+
+  //all the default values for our headers.
+  var headers = {
     'access-control-allow-origin': '*',
+    //allowed methods that the server will accep
     'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'access-control-allow-headers': 'content-type, accept',
     'access-control-max-age': 10, // Seconds.
+    //Content type of server response, specifically our messages
     'Content-Type': 'application/json'
   };
   // Request and Response come from node's http module.
@@ -38,9 +44,8 @@ var requestHandler = function(request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
-  var headers = defaultCorsHeaders;
 
-  // The outgoing status.
+  //object containing the acceptable file paths
   var urlKeys = {
     '/': true,
     '/styles/styles.css': true,
@@ -50,91 +55,70 @@ var requestHandler = function(request, response) {
     '/styles/styles.css': true
   };
 
+  //checking to see if request is invalid...
   if (!urlKeys[request.url] && !request.url.startsWith('/classes/messages')) {
+    //if invalid, change status code to 404
     response.writeHead(404, headers);
-    response.end();
+    //respond back with message indicating error
+    response.end('404 ERROR!!!!!');
+    return;
   }
 
-
+  //if the request type is a POST.....
   if (request.method === 'POST') {
+    //and it starts withs classes/messages
     if (request.url.startsWith('/classes/messages')) {
+      //change the status to 201
       response.writeHead(201, headers);
+      //listen for when there is a change in data,
+      //then timestamp it and push to body.results, where we store messages
       request.on('data', (json) => {
         var message = JSON.parse(json);
         message.createdAt = Date.now();
         body.results.unshift(message);
       });
+      //send back stringified body
       response.end(JSON.stringify(body));
     }
-
+    //if GET request and URL starts with classes/messages...
   } else if (request.method === 'GET') {
     if (request.url.startsWith('/classes/messages')) {
       response.writeHead(200, headers);
+      //return back all our messages
       response.end(JSON.stringify(body));
     } else {
+      // handling GET requests to local files
       var filePath = '../client/client';
+      // sets filePath and content type for index.html
       if (request.url === '/') {
         headers['Content-Type'] = 'text/html';
         filePath += '/index.html';
+      // sets filePath/content type for javascript files
       } else if (request.url.endsWith('.js')) {
         headers['Content-Type'] = 'text/javascript';
         filePath += request.url;
+      // sets filePath/content type for css files
       } else if (request.url.endsWith('.css')) {
         headers['Content-Type'] = 'text/css';
         filePath += request.url;
       }
-      fs.readFile(filePath, 'utf8', function (err, html) {
+
+      // reads file using filePath
+      fs.readFile(filePath, 'utf8', function (err, contents) {
+        // handles our error
         if (err) {
           console.log(err);
           response.writeHead(500, headers);
           response.end();
+        // serve file contents to the client
         } else {
           response.writeHead(200, headers);
-          response.write(html);
-          response.end();
+          //console.log(contents);
+          response.end(contents);
         }
       });
     }
-    // } else if (request.url === '/') {
-    //   headers['Content-Type'] = 'text/html';
-    //   fs.readFile('../client/client/index.html', 'utf8', function (err, html) {
-    //     if (err) {
-    //       console.log(err);
-    //       response.writeHead(500, headers);
-    //       response.end();
-    //     } else {
-    //       response.writeHead(200, headers);
-    //       response.write(html);
-    //       response.end();
-    //     }
-    //   });
-    // } else if (request.url.endsWith('.js')) {
-    //   headers['Content-Type'] = 'text/javascript';
-    //   fs.readFile(`../client/client${request.url}`, 'utf8', function (err, html) {
-    //     if (err) {
-    //       console.log(err);
-    //       response.writeHead(500, headers);
-    //       response.end();
-    //     } else {
-    //       response.writeHead(200, headers);
-    //       response.write(html);
-    //       response.end();
-    //     }
-    //   });
-    // } else if (request.url.endsWith('.css')) {
-    //   headers['Content-Type'] = 'text/css';
-      // fs.readFile(`../client/client${request.url}`, 'utf8', function (err, html) {
-      //   if (err) {
-      //     console.log(err);
-      //     response.writeHead(500, headers);
-      //     response.end();
-      //   } else {
-      //     response.writeHead(200, headers);
-      //     response.write(html);
-      //     response.end();
-      //   }
-      // });
-    // }
+
   }
 
 };
